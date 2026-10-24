@@ -13,8 +13,13 @@ st.set_page_config(
 st.title("📺 TV Program Schedule Optimizer")
 st.caption("Individual Assignment — Genetic Algorithm Implementation")
 
+# Internal Fixed GA Parameters (Hidden from UI)
+GEN = 100
+POP = 50
+EL_S = 2
+
 # ---------------------------------------------------------
-# 1. READ CSV DATA (From Tutorial)
+# 1. READ CSV DATA
 # ---------------------------------------------------------
 def read_csv_to_dict(file_path):
     program_ratings = {}
@@ -43,7 +48,7 @@ num_slots = len(next(iter(ratings.values())))
 all_time_slots = list(range(6, 6 + num_slots)) 
 
 # ---------------------------------------------------------
-# 2. STREAMLIT PARAMETER INPUTS (Instruction 3)
+# 2. STREAMLIT PARAMETER INPUTS (Requirement 3 Only)
 # ---------------------------------------------------------
 st.sidebar.header("🕹️ Algorithm Parameters")
 
@@ -53,7 +58,8 @@ co_r = st.sidebar.slider(
     min_value=0.00, 
     max_value=0.95, 
     value=0.80, 
-    step=0.05
+    step=0.05,
+    help="Range: 0.0 to 0.95 (Default: 0.80)"
 )
 
 # Mutation Rate (MUT_R): Default 0.02, range 0.01 to 0.05
@@ -62,13 +68,9 @@ mut_r = st.sidebar.slider(
     min_value=0.01, 
     max_value=0.05, 
     value=0.02, 
-    step=0.01
+    step=0.01,
+    help="Range: 0.01 to 0.05 (Default: 0.02)"
 )
-
-st.sidebar.markdown("---")
-gen_input = st.sidebar.number_input("Generations (GEN)", value=100, step=10)
-pop_input = st.sidebar.number_input("Population Size (POP)", value=50, step=10)
-el_s_input = st.sidebar.number_input("Elitism Size (EL_S)", value=2, step=1)
 
 # Display loaded ratings data
 st.subheader("1. Program Ratings Data")
@@ -76,7 +78,7 @@ ratings_df = pd.DataFrame.from_dict(ratings, orient='index', columns=[f"Slot {s:
 st.dataframe(ratings_df, use_container_width=True)
 
 # ---------------------------------------------------------
-# 3. GENETIC ALGORITHM LOGIC (From Tutorial)
+# 3. GENETIC ALGORITHM LOGIC
 # ---------------------------------------------------------
 def fitness_function(schedule):
     total_rating = 0
@@ -99,7 +101,7 @@ def mutate(schedule):
     schedule_copy[mutation_point] = new_program
     return schedule_copy
 
-def genetic_algorithm(initial_schedule, generations=100, population_size=50, crossover_rate=0.8, mutation_rate=0.02, elitism_size=2):
+def genetic_algorithm(initial_schedule, generations=GEN, population_size=POP, crossover_rate=0.8, mutation_rate=0.02, elitism_size=EL_S):
     population = [initial_schedule]
 
     for _ in range(population_size - 1):
@@ -144,7 +146,7 @@ else:
     initial_schedule = initial_schedule[:len(all_time_slots)]
 
 # ---------------------------------------------------------
-# 4. RUN TRIALS & DISPLAY TABLES (Instructions 4 & 5)
+# 4. RUN TRIALS & DISPLAY TABLES
 # ---------------------------------------------------------
 if 'trials' not in st.session_state:
     st.session_state.trials = []
@@ -166,11 +168,11 @@ if run_btn:
     else:
         best_sched, total_score, history = genetic_algorithm(
             initial_schedule=initial_schedule,
-            generations=gen_input,
-            population_size=pop_input,
+            generations=GEN,
+            population_size=POP,
             crossover_rate=co_r,
             mutation_rate=mut_r,
-            elitism_size=el_s_input
+            elitism_size=EL_S
         )
         
         # Build schedule output table
