@@ -11,16 +11,13 @@ st.set_page_config(
 )
 
 st.title("📺 TV Program Schedule Optimizer")
-st.caption("Individual Assignment — Genetic Algorithm Implementation")
 
 # Internal Fixed GA Parameters (Hidden from UI)
 GEN = 100
 POP = 50
 EL_S = 2
 
-# ---------------------------------------------------------
-# 1. READ CSV DATA
-# ---------------------------------------------------------
+# READ CSV DATA
 def read_csv_to_dict(file_path):
     program_ratings = {}
     with open(file_path, mode='r', newline='') as file:
@@ -47,45 +44,14 @@ all_programs = list(ratings.keys())
 num_slots = len(next(iter(ratings.values())))
 all_time_slots = list(range(6, 6 + num_slots)) 
 
-# ---------------------------------------------------------
-# 2. STREAMLIT PARAMETER INPUTS (Main Page Layout)
-# ---------------------------------------------------------
-st.markdown("---")
-st.subheader("⚙️ Genetic Algorithm Parameters")
-
-# Display sliders side-by-side in two columns on the main page
-param_col1, param_col2 = st.columns(2)
-
-with param_col1:
-    co_r = st.slider(
-        "Crossover Rate (CO_R)", 
-        min_value=0.00, 
-        max_value=0.95, 
-        value=0.80, 
-        step=0.05,
-        help="Range: 0.0 to 0.95 (Default: 0.80)"
-    )
-
-with param_col2:
-    mut_r = st.slider(
-        "Mutation Rate (MUT_R)", 
-        min_value=0.01, 
-        max_value=0.05, 
-        value=0.02, 
-        step=0.01,
-        help="Range: 0.01 to 0.05 (Default: 0.02)"
-    )
-
 st.markdown("---")
 
 # Display loaded ratings data
-st.subheader("1. Loaded Program Ratings Data")
+st.subheader("Loaded Program Ratings Data")
 ratings_df = pd.DataFrame.from_dict(ratings, orient='index', columns=[f"Slot {s:02d}:00" for s in all_time_slots])
 st.dataframe(ratings_df, use_container_width=True)
 
-# ---------------------------------------------------------
-# 3. GENETIC ALGORITHM LOGIC
-# ---------------------------------------------------------
+# GENETIC ALGORITHM LOGIC
 def fitness_function(schedule):
     total_rating = 0
     for time_slot, program in enumerate(schedule):
@@ -151,14 +117,39 @@ if len(initial_schedule) < len(all_time_slots):
 else:
     initial_schedule = initial_schedule[:len(all_time_slots)]
 
-# ---------------------------------------------------------
-# 4. RUN TRIALS & DISPLAY TABLES
-# ---------------------------------------------------------
+# PARAMETER INPUTS 
+st.markdown("---")
+st.subheader("⚙️ Genetic Algorithm Parameters")
+
+# Display sliders side-by-side in two columns on the main page
+param_col1, param_col2 = st.columns(2)
+
+with param_col1:
+    co_r = st.slider(
+        "Crossover Rate (CO_R)", 
+        min_value=0.00, 
+        max_value=0.95, 
+        value=0.80, 
+        step=0.05,
+        help="Range: 0.0 to 0.95 (Default: 0.80)"
+    )
+
+with param_col2:
+    mut_r = st.slider(
+        "Mutation Rate (MUT_R)", 
+        min_value=0.01, 
+        max_value=0.05, 
+        value=0.02, 
+        step=0.01,
+        help="Range: 0.01 to 0.05 (Default: 0.02)"
+    )
+
+# RUN TRIALS & DISPLAY TABLES
 if 'trials' not in st.session_state:
     st.session_state.trials = []
 
 st.markdown("---")
-st.subheader("2. Run Experimental Trials")
+st.subheader("Run Experimental Trials")
 
 col1, col2 = st.columns([1, 4])
 with col1:
@@ -203,10 +194,20 @@ if run_btn:
             "Schedule Table": schedule_table,
             "History": history
         })
+        
+    st.subheader("Generated Schedule Tables")
+    tabs = st.tabs([t["Trial"] for t in st.session_state.trials])
+    
+    for tab, t in zip(tabs, st.session_state.trials):
+        with tab:
+            st.markdown(f"**Parameters:** `CO_R` = {t['CO_R']} | `MUT_R` = {t['MUT_R']}")
+            st.markdown(f"**Total Ratings Score:** `{t['Total Ratings Score']}`")
+            st.dataframe(t["Schedule Table"], use_container_width=True)
+            st.line_chart(t["History"], height=180)
 
 # Display recorded trial summary and output tables
 if st.session_state.trials:
-    st.subheader("3. Experimental Trials Summary")
+    st.subheader("Experimental Trials Summary")
     
     summary_list = [{
         "Trial": t["Trial"],
@@ -217,12 +218,3 @@ if st.session_state.trials:
     
     st.table(pd.DataFrame(summary_list))
 
-    st.subheader("4. Generated Schedule Tables")
-    tabs = st.tabs([t["Trial"] for t in st.session_state.trials])
-    
-    for tab, t in zip(tabs, st.session_state.trials):
-        with tab:
-            st.markdown(f"**Parameters:** `CO_R` = {t['CO_R']} | `MUT_R` = {t['MUT_R']}")
-            st.markdown(f"**Total Ratings Score:** `{t['Total Ratings Score']}`")
-            st.dataframe(t["Schedule Table"], use_container_width=True)
-            st.line_chart(t["History"], height=180)
