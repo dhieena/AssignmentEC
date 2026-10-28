@@ -205,7 +205,6 @@ if st.session_state.trials:
     
     st.table(pd.DataFrame(summary_list))
     
-    st.markdown("---")
     st.subheader("Generated Schedule Tables")
     tabs = st.tabs([t["Trial"] for t in st.session_state.trials])
     
