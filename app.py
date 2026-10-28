@@ -44,8 +44,6 @@ all_programs = list(ratings.keys())
 num_slots = len(next(iter(ratings.values())))
 all_time_slots = list(range(6, 6 + num_slots)) 
 
-st.markdown("---")
-
 # Display loaded ratings data
 st.subheader("Program Ratings Data")
 ratings_df = pd.DataFrame.from_dict(ratings, orient='index', columns=[f"Slot {s:02d}:00" for s in all_time_slots])
@@ -207,6 +205,7 @@ if st.session_state.trials:
     
     st.table(pd.DataFrame(summary_list))
     
+    st.markdown("---")
     st.subheader("Generated Schedule Tables")
     tabs = st.tabs([t["Trial"] for t in st.session_state.trials])
     
