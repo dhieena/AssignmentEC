@@ -47,7 +47,7 @@ all_time_slots = list(range(6, 6 + num_slots))
 st.markdown("---")
 
 # Display loaded ratings data
-st.subheader("Loaded Program Ratings Data")
+st.subheader("Program Ratings Data")
 ratings_df = pd.DataFrame.from_dict(ratings, orient='index', columns=[f"Slot {s:02d}:00" for s in all_time_slots])
 st.dataframe(ratings_df, use_container_width=True)
 
@@ -148,9 +148,6 @@ with param_col2:
 if 'trials' not in st.session_state:
     st.session_state.trials = []
 
-st.markdown("---")
-st.subheader("Run Experimental Trials")
-
 col1, col2 = st.columns([1, 4])
 with col1:
     run_btn = st.button("🚀 Run GA Trial", type="primary")
@@ -194,18 +191,10 @@ if run_btn:
             "Schedule Table": schedule_table,
             "History": history
         })
-        
-    st.subheader("Generated Schedule Tables")
-    tabs = st.tabs([t["Trial"] for t in st.session_state.trials])
-    
-    for tab, t in zip(tabs, st.session_state.trials):
-        with tab:
-            st.markdown(f"**Parameters:** `CO_R` = {t['CO_R']} | `MUT_R` = {t['MUT_R']}")
-            st.markdown(f"**Total Ratings Score:** `{t['Total Ratings Score']}`")
-            st.dataframe(t["Schedule Table"], use_container_width=True)
-            st.line_chart(t["History"], height=180)
 
 # Display recorded trial summary and output tables
+st.markdown("---")
+
 if st.session_state.trials:
     st.subheader("Experimental Trials Summary")
     
@@ -217,4 +206,13 @@ if st.session_state.trials:
     } for t in st.session_state.trials]
     
     st.table(pd.DataFrame(summary_list))
-
+    
+    st.subheader("Generated Schedule Tables")
+    tabs = st.tabs([t["Trial"] for t in st.session_state.trials])
+    
+    for tab, t in zip(tabs, st.session_state.trials):
+        with tab:
+            st.markdown(f"**Parameters:** `CO_R` = {t['CO_R']} | `MUT_R` = {t['MUT_R']}")
+            st.markdown(f"**Total Ratings Score:** `{t['Total Ratings Score']}`")
+            st.dataframe(t["Schedule Table"], use_container_width=True)
+            st.line_chart(t["History"], height=180)
