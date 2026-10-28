@@ -74,3 +74,155 @@ with param_col2:
         value=0.02, 
         step=0.01,
         help="Range: 0.01 to 0.05 (Default: 0.02)"
+    )
+
+st.markdown("---")
+
+# Display loaded ratings data
+st.subheader("1. Loaded Program Ratings Data")
+ratings_df = pd.DataFrame.from_dict(ratings, orient='index', columns=[f"Slot {s:02d}:00" for s in all_time_slots])
+st.dataframe(ratings_df, use_container_width=True)
+
+# ---------------------------------------------------------
+# 3. GENETIC ALGORITHM LOGIC
+# ---------------------------------------------------------
+def fitness_function(schedule):
+    total_rating = 0
+    for time_slot, program in enumerate(schedule):
+        total_rating += ratings[program][time_slot]
+    return total_rating
+
+def crossover(schedule1, schedule2):
+    if len(schedule1) <= 2:
+        return schedule1.copy(), schedule2.copy()
+    crossover_point = random.randint(1, len(schedule1) - 2)
+    child1 = schedule1[:crossover_point] + schedule2[crossover_point:]
+    child2 = schedule2[:crossover_point] + schedule1[crossover_point:]
+    return child1, child2
+
+def mutate(schedule):
+    schedule_copy = schedule.copy()
+    mutation_point = random.randint(0, len(schedule_copy) - 1)
+    new_program = random.choice(all_programs)
+    schedule_copy[mutation_point] = new_program
+    return schedule_copy
+
+def genetic_algorithm(initial_schedule, generations=GEN, population_size=POP, crossover_rate=0.8, mutation_rate=0.02, elitism_size=EL_S):
+    population = [initial_schedule]
+
+    for _ in range(population_size - 1):
+        random_schedule = initial_schedule.copy()
+        random.shuffle(random_schedule)
+        population.append(random_schedule)
+
+    best_fitness_history = []
+
+    for generation in range(generations):
+        # Sort population by fitness (Elitism)
+        population.sort(key=lambda schedule: fitness_function(schedule), reverse=True)
+        best_fitness_history.append(fitness_function(population[0]))
+        
+        new_population = []
+        new_population.extend(population[:elitism_size])
+
+        while len(new_population) < population_size:
+            parent1, parent2 = random.choices(population, k=2)
+            if random.random() < crossover_rate:
+                child1, child2 = crossover(parent1, parent2)
+            else:
+                child1, child2 = parent1.copy(), parent2.copy()
+
+            if random.random() < mutation_rate:
+                child1 = mutate(child1)
+            if random.random() < mutation_rate:
+                child2 = mutate(child2)
+
+            new_population.extend([child1, child2])
+
+        population = new_population[:population_size]
+
+    population.sort(key=lambda schedule: fitness_function(schedule), reverse=True)
+    return population[0], fitness_function(population[0]), best_fitness_history
+
+# Initial schedule preparation
+initial_schedule = all_programs.copy()
+if len(initial_schedule) < len(all_time_slots):
+    initial_schedule += random.choices(all_programs, k=len(all_time_slots) - len(initial_schedule))
+else:
+    initial_schedule = initial_schedule[:len(all_time_slots)]
+
+# ---------------------------------------------------------
+# 4. RUN TRIALS & DISPLAY TABLES
+# ---------------------------------------------------------
+if 'trials' not in st.session_state:
+    st.session_state.trials = []
+
+st.markdown("---")
+st.subheader("2. Run Experimental Trials")
+
+col1, col2 = st.columns([1, 4])
+with col1:
+    run_btn = st.button("🚀 Run GA Trial", type="primary")
+with col2:
+    if st.button("🗑️ Clear Trials"):
+        st.session_state.trials = []
+        st.rerun()
+
+if run_btn:
+    if len(st.session_state.trials) >= 3:
+        st.warning("You have already recorded 3 trials! Click 'Clear Trials' to restart.")
+    else:
+        best_sched, total_score, history = genetic_algorithm(
+            initial_schedule=initial_schedule,
+            generations=GEN,
+            population_size=POP,
+            crossover_rate=co_r,
+            mutation_rate=mut_r,
+            elitism_size=EL_S
+        )
+        
+        # Build schedule output table
+        table_rows = []
+        for time_slot_idx, program in enumerate(best_sched):
+            time_str = f"Slot {all_time_slots[time_slot_idx]:02d}:00 - {all_time_slots[time_slot_idx]+1:02d}:00"
+            rating_val = ratings[program][time_slot_idx]
+            table_rows.append({
+                "Time Slot": time_str,
+                "Scheduled Program": program,
+                "Assigned Rating": rating_val
+            })
+        
+        schedule_table = pd.DataFrame(table_rows)
+        trial_number = len(st.session_state.trials) + 1
+        
+        st.session_state.trials.append({
+            "Trial": f"Trial {trial_number}",
+            "CO_R": co_r,
+            "MUT_R": mut_r,
+            "Total Ratings Score": round(total_score, 2),
+            "Schedule Table": schedule_table,
+            "History": history
+        })
+
+# Display recorded trial summary and output tables
+if st.session_state.trials:
+    st.subheader("3. Experimental Trials Summary")
+    
+    summary_list = [{
+        "Trial": t["Trial"],
+        "Crossover Rate (CO_R)": t["CO_R"],
+        "Mutation Rate (MUT_R)": t["MUT_R"],
+        "Total Ratings Score": t["Total Ratings Score"]
+    } for t in st.session_state.trials]
+    
+    st.table(pd.DataFrame(summary_list))
+
+    st.subheader("4. Generated Schedule Tables")
+    tabs = st.tabs([t["Trial"] for t in st.session_state.trials])
+    
+    for tab, t in zip(tabs, st.session_state.trials):
+        with tab:
+            st.markdown(f"**Parameters:** `CO_R` = {t['CO_R']} | `MUT_R` = {t['MUT_R']}")
+            st.markdown(f"**Total Ratings Score:** `{t['Total Ratings Score']}`")
+            st.dataframe(t["Schedule Table"], use_container_width=True)
+            st.line_chart(t["History"], height=180)
